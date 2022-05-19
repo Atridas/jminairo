@@ -34,14 +34,18 @@ class Parser {
     }
 
     private Expr expression() {
+        while (match(TokenType.QUESTION, TokenType.COLON, TokenType.BANG_EQUAL,
+                TokenType.EQUAL_EQUAL, TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL,
+                TokenType.SLASH, TokenType.STAR)) {
+            error(previous(), "Expect expression.");
+        }
         return ternary();
     }
 
     private Expr ternary() {
         Expr expr = equality(); // this goes all the way down to "logical or"
 
-        if(match(TokenType.QUESTION))
-        {
+        if (match(TokenType.QUESTION)) {
             Expr pass = expression();
             consume(TokenType.COLON, "Expect ':' after expression.");
             Expr fail = expression(); // this goes to assignment expression
@@ -105,6 +109,8 @@ class Parser {
             Token operator = previous();
             Expr right = unary();
             return new Expr.Unary(operator, right);
+        } else if (match(TokenType.PLUS)) {
+            error(previous(), "Unary '+' expressions are not supported.");
         }
 
         return primary();

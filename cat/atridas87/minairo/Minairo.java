@@ -39,7 +39,10 @@ public class Minairo {
       if (line == null)
         break;
       if (line.endsWith("\u0004")) {
-        run(line.substring(0, line.length() - 1));
+        int len = line.length();
+        if (len > 1) {
+          run(line.substring(0, len - 1));
+        }
         break;
       }
       run(line);
