@@ -16,6 +16,7 @@ public class GenerateAbstractSyntaxTree {
         "Binary   : Expr left, Token operator, Expr right",
         "Grouping : Expr expression",
         "Literal  : Object value",
+        "Ternary  : Expr condition, Expr pass, Expr fail",
         "Unary    : Token operator, Expr right"));
   }
 
