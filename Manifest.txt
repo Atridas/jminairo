@@ -1,0 +1,1 @@
+Main-Class: cat.atridas87.minairo.Minairo
