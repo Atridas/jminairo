@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
+import cat.atridas87.minairo.generated.*;
+
 public class Minairo {
   private static final Interpreter interpreter = new Interpreter();
   static boolean hadError = false;

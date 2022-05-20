@@ -1,5 +1,7 @@
 package cat.atridas87.minairo;
 
+import cat.atridas87.minairo.generated.*;
+
 class Interpreter implements Expr.Visitor<Object> {
 
     void interpret(Expr expression) {

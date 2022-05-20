@@ -2,6 +2,8 @@ package cat.atridas87.minairo;
 
 import java.util.List;
 
+import cat.atridas87.minairo.generated.*;
+
 class Parser {
     private static class ParseError extends RuntimeException {
     }
