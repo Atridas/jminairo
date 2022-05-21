@@ -1,7 +1,9 @@
 package cat.atridas87.minairo;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import java.util.ArrayList;
 import cat.atridas87.minairo.generated.*;
 
 class Parser {
@@ -15,35 +17,112 @@ class Parser {
         this.tokens = tokens;
     }
 
-    Expr parse() {
+    // program -> ( declaration )* EOF
+    List<Stmt> parse() {
         try {
-            return commaExpression();
+            List<Stmt> statements = new ArrayList<>();
+            while (!isAtEnd()) {
+                statements.add(declaration());
+            }
+
+            return statements;
         } catch (ParseError error) {
             return null;
         }
     }
 
-    private Expr commaExpression() {
-        Expr expr = expression();
+    // statement -> "var" varDeclaration | statement
+    private Stmt declaration() {
+        try {
+            if (match(TokenType.VAR))
+                return varDeclaration();
 
-        while (match(TokenType.COMMA)) {
-            Token operator = previous();
-            Expr right = expression();
-            expr = new Expr.Binary(expr, operator, right);
+            return statement();
+        } catch (ParseError error) {
+            synchronize();
+            return null;
         }
-
-        return expr;
     }
 
+    // statement -> "print" printStatement | "{" block | expressionStatement
+    private Stmt statement() {
+        if (match(TokenType.PRINT))
+            return printStatement();
+        else if(match(TokenType.LEFT_BRACE))
+            return new Stmt.Block(block());
+        else
+            return expressionStatement();
+    }
+
+    // block -> ( declaration )* "}"
+    private List<Stmt> block() {
+        List<Stmt> statements = new ArrayList<>();
+    
+        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+          statements.add(declaration());
+        }
+    
+        consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
+        return statements;
+      }
+
+    // printStatement -> exprssion ";"
+    private Stmt printStatement() {
+        Expr value = expression();
+        consume(TokenType.SEMICOLON, "Expect ';' after value.");
+        return new Stmt.Print(value);
+    }
+
+    // varDeclaration -> TokenType.IDENTIFIER "=" exprssion ";"
+    private Stmt varDeclaration() {
+        Token name = consume(TokenType.IDENTIFIER, "Expect variable name.");
+
+        Expr initializer = null;
+        if (match(TokenType.EQUAL)) {
+            initializer = expression();
+        }
+
+        consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+        return new Stmt.Var(name, initializer);
+    }
+
+    // expressionStatement -> exprssion ";"
+    private Stmt expressionStatement() {
+        Expr expr = expression();
+        consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+        return new Stmt.Expression(expr);
+    }
+
+    // expression -> assignment
     private Expr expression() {
         while (match(TokenType.QUESTION, TokenType.COLON, TokenType.BANG_EQUAL,
                 TokenType.EQUAL_EQUAL, TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL,
                 TokenType.SLASH, TokenType.STAR)) {
             error(previous(), "Expect expression.");
         }
-        return ternary();
+        return assignment();
     }
 
+    // assignment -> IDENTIFIER ( "=" assignment ) | ternary
+    private Expr assignment() {
+        Expr expr = ternary();
+
+        if (match(TokenType.EQUAL)) {
+            Token equals = previous();
+            Expr value = assignment();
+
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Expr.Variable) expr).name;
+                return new Expr.Assign(name, value);
+            }
+
+            error(equals, "Invalid assignment target.");
+        }
+
+        return expr;
+    }
+
+    // ternary -> equality ( "?" expression ":" expression )?
     private Expr ternary() {
         Expr expr = equality(); // this goes all the way down to "logical or"
 
@@ -58,6 +137,7 @@ class Parser {
         return expr;
     }
 
+    // equality -> comparison ( "?" expression ":" expression )?
     private Expr equality() {
         Expr expr = comparison();
 
@@ -70,6 +150,7 @@ class Parser {
         return expr;
     }
 
+    // comparison -> term ( ( ">" | "<=" | ">" | ">=" ) term )*
     private Expr comparison() {
         Expr expr = term();
 
@@ -82,6 +163,7 @@ class Parser {
         return expr;
     }
 
+    // term -> factor ( ( "-" | "+" ) factor )*
     private Expr term() {
         Expr expr = factor();
 
@@ -94,6 +176,7 @@ class Parser {
         return expr;
     }
 
+    // factor -> unary ( ( "/" | "*" ) unary )*
     private Expr factor() {
         Expr expr = unary();
 
@@ -106,6 +189,7 @@ class Parser {
         return expr;
     }
 
+    // unary -> ( "!" | "-" ) unary | primary
     private Expr unary() {
         if (match(TokenType.BANG, TokenType.MINUS)) {
             Token operator = previous();
@@ -118,6 +202,8 @@ class Parser {
         return primary();
     }
 
+    // primary -> NUMBER | STRING | "true" | "false" | "nil" | IDENTIFIER | "("
+    // expression ")"
     private Expr primary() {
         if (match(TokenType.FALSE))
             return new Expr.Literal(false);
@@ -128,6 +214,10 @@ class Parser {
 
         if (match(TokenType.NUMBER, TokenType.STRING)) {
             return new Expr.Literal(previous().literal);
+        }
+
+        if (match(TokenType.IDENTIFIER)) {
+            return new Expr.Variable(previous());
         }
 
         if (match(TokenType.LEFT_PAREN)) {

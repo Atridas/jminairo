@@ -1,19 +1,31 @@
 package cat.atridas87.minairo;
 
+import java.util.List;
+
 import cat.atridas87.minairo.generated.*;
 
-class Interpreter implements Expr.Visitor<Object> {
+class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
-    void interpret(Expr expression) {
+    private Environment environment = new Environment();
+
+    void interpret(List<Stmt> statements) {
         try {
-            Object value = evaluate(expression);
-            System.out.println(stringify(value));
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
         } catch (RuntimeError error) {
             Minairo.runtimeError(error);
         }
     }
 
     // BEGIN Expr.Visitor<Object> Interface
+    @Override
+    public Object visitAssignExpr(Expr.Assign expr) {
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
+    }
+
     @Override
     public Object visitBinaryExpr(Expr.Binary expr) {
         Object left = evaluate(expr.left);
@@ -41,8 +53,6 @@ class Interpreter implements Expr.Visitor<Object> {
             case STAR:
                 checkNumberOperands(expr.operator, left, right);
                 return (double) left * (double) right;
-            case COMMA:
-                return right;
             case BANG_EQUAL:
                 return !isEqual(left, right);
             case EQUAL_EQUAL:
@@ -75,7 +85,7 @@ class Interpreter implements Expr.Visitor<Object> {
 
     @Override
     public Object visitTernaryExpr(Expr.Ternary expr) {
-        if(isTruthy(expr.condition)) {
+        if (isTruthy(expr.condition)) {
             return evaluate(expr.pass);
         } else {
             return evaluate(expr.fail);
@@ -96,7 +106,44 @@ class Interpreter implements Expr.Visitor<Object> {
                 throw new RuntimeException();
         }
     }
+
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr) {
+        return environment.get(expr.name);
+    }
     // END Expr.Visitor<Object> Interface
+
+    // BEGIN Stmt.Visitor<Void> Interface
+    @Override
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        executeBlock(stmt.statements, new Environment(environment));
+        return null;
+    }
+
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
+    }
+
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt) {
+        Object value = null;
+        if (stmt.initializer != null) {
+            value = evaluate(stmt.initializer);
+        }
+
+        environment.define(stmt.name.lexeme, value);
+        return null;
+    }
+    // END Expr.Visitor<Void> Interface
 
     private void checkNumberOperand(Token operator, Object operand) {
         if (operand instanceof Double)
@@ -114,6 +161,23 @@ class Interpreter implements Expr.Visitor<Object> {
 
     private Object evaluate(Expr expr) {
         return expr.accept(this);
+    }
+
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
+    }
+
+    void executeBlock(List<Stmt> statements, Environment environment) {
+        Environment previous = this.environment;
+        try {
+            this.environment = environment;
+
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = previous;
+        }
     }
 
     private boolean isEqual(Object a, Object b) {
@@ -134,16 +198,17 @@ class Interpreter implements Expr.Visitor<Object> {
     }
 
     private String stringify(Object object) {
-        if (object == null) return "nil";
-    
+        if (object == null)
+            return "nil";
+
         if (object instanceof Double) {
-          String text = object.toString();
-          if (text.endsWith(".0")) {
-            text = text.substring(0, text.length() - 2);
-          }
-          return text;
+            String text = object.toString();
+            if (text.endsWith(".0")) {
+                text = text.substring(0, text.length() - 2);
+            }
+            return text;
         }
-    
+
         return object.toString();
-      }
+    }
 }

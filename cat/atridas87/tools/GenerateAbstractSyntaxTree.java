@@ -13,15 +13,19 @@ public class GenerateAbstractSyntaxTree {
     }
     String outputDir = args[0] + "/cat/atridas87/minairo/generated/";
     defineAst(outputDir, "Expr", Arrays.asList(
+        "Assign   : Token name, Expr value",
         "Binary   : Expr left, Token operator, Expr right",
         "Grouping : Expr expression",
         "Literal  : Object value",
         "Ternary  : Expr condition, Expr pass, Expr fail",
-        "Unary    : Token operator, Expr right"));
+        "Unary    : Token operator, Expr right",
+        "Variable : Token name"));
 
     defineAst(outputDir, "Stmt", Arrays.asList(
+        "Block      : List<Stmt> statements",
         "Expression : Expr expression",
-        "Print      : Expr expression"));
+        "Print      : Expr expression",
+        "Var        : Token name, Expr initializer"));
   }
 
   private static void defineAst(String outputDir, String baseName, List<String> types) throws IOException {
