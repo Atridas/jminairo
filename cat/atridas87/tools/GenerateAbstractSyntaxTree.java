@@ -12,29 +12,40 @@ public class GenerateAbstractSyntaxTree {
       System.exit(64);
     }
     String outputDir = args[0] + "/cat/atridas87/minairo/generated/";
-    defineAst(outputDir, "Expr", Arrays.asList(
-        "Assign   : Token name, Expr value",
-        "Binary   : Expr left, Token operator, Expr right",
-        "Grouping : Expr expression",
-        "Literal  : Object value",
-        "Ternary  : Expr condition, Expr pass, Expr fail",
-        "Unary    : Token operator, Expr right",
-        "Variable : Token name"));
+    defineAst(outputDir, "Expr",
+        Arrays.asList(),
+        Arrays.asList(
+            "Assign   : Token name, Expr value",
+            "Binary   : Expr left, Token operator, Expr right",
+            "Grouping : Expr expression",
+            "Literal  : Object value",
+            "Logical  : Expr left, Token operator, Expr right",
+            "Ternary  : Expr condition, Expr pass, Expr fail",
+            "Unary    : Token operator, Expr right",
+            "Variable : Token name"));
 
-    defineAst(outputDir, "Stmt", Arrays.asList(
-        "Block      : List<Stmt> statements",
-        "Expression : Expr expression",
-        "Print      : Expr expression",
-        "Var        : Token name, Expr initializer"));
+    defineAst(outputDir, "Stmt",
+        Arrays.asList("java.util.List"),
+        Arrays.asList(
+            "Block      : List<Stmt> statements",
+            "Expression : Expr expression",
+            "If         : Expr condition, Stmt thenBranch," +
+                " Stmt elseBranch",
+            "Print      : Expr expression",
+            "Var        : Token name, Expr initializer",
+            "While      : Expr condition, Stmt body"));
   }
 
-  private static void defineAst(String outputDir, String baseName, List<String> types) throws IOException {
+  private static void defineAst(String outputDir, String baseName, List<String> imports, List<String> types)
+      throws IOException {
     String path = outputDir + baseName + ".java";
     PrintWriter writer = new PrintWriter(path, "UTF-8");
 
     writer.println("package cat.atridas87.minairo.generated;");
     writer.println();
-    writer.println("import java.util.List;");
+    for (String importClass : imports) {
+      writer.println("import " + importClass + ";");
+    }
     writer.println();
     writer.println("import cat.atridas87.minairo.*;");
     writer.println();

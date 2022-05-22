@@ -3,7 +3,7 @@ package cat.atridas87.minairo;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import cat.atridas87.minairo.generated.*;
 
 class Parser {
@@ -44,33 +44,103 @@ class Parser {
         }
     }
 
-    // statement -> "print" printStatement | "{" block | expressionStatement
+    // statement -> "for" forStatement
+    // | "if" ifStatement
+    // | "print" printStatement
+    // | "while" whileStatement
+    // | "{" block
+    // | expressionStatement
     private Stmt statement() {
-        if (match(TokenType.PRINT))
+        if (match(TokenType.FOR))
+            return forStatement();
+        else if (match(TokenType.IF))
+            return ifStatement();
+        else if (match(TokenType.PRINT))
             return printStatement();
-        else if(match(TokenType.LEFT_BRACE))
+        else if (match(TokenType.WHILE))
+            return whileStatement();
+        else if (match(TokenType.LEFT_BRACE))
             return new Stmt.Block(block());
         else
             return expressionStatement();
     }
 
+    private Stmt forStatement() {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.");
+
+        Stmt initializer;
+        if (match(TokenType.SEMICOLON)) {
+            initializer = null;
+        } else if (match(TokenType.VAR)) {
+            initializer = varDeclaration();
+        } else {
+            initializer = expressionStatement();
+        }
+
+        Expr condition = null;
+        if (!check(TokenType.SEMICOLON)) {
+            condition = expression();
+        }
+        consume(TokenType.SEMICOLON, "Expect ';' after loop condition.");
+
+        Expr increment = null;
+        if (!check(TokenType.RIGHT_PAREN)) {
+            increment = expression();
+        }
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after for clauses.");
+
+        Stmt body = statement();
+
+        if (increment != null) {
+            body = new Stmt.Block(
+                    Arrays.asList(
+                            body,
+                            new Stmt.Expression(increment)));
+        }
+
+        if (condition == null)
+            condition = new Expr.Literal(true);
+        body = new Stmt.While(condition, body);
+
+        if (initializer != null) {
+            body = new Stmt.Block(Arrays.asList(initializer, body));
+        }
+
+        return body;
+    }
+
     // block -> ( declaration )* "}"
     private List<Stmt> block() {
         List<Stmt> statements = new ArrayList<>();
-    
+
         while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
-          statements.add(declaration());
+            statements.add(declaration());
         }
-    
+
         consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
         return statements;
-      }
+    }
 
     // printStatement -> exprssion ";"
     private Stmt printStatement() {
         Expr value = expression();
         consume(TokenType.SEMICOLON, "Expect ';' after value.");
         return new Stmt.Print(value);
+    }
+
+    // ifDeclaration -> "(" expression ")" statement ( "else" statement )?
+    private Stmt ifStatement() {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'.");
+        Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after if condition.");
+
+        Stmt thenBranch = statement();
+        Stmt elseBranch = null;
+        if (match(TokenType.ELSE)) {
+            elseBranch = statement();
+        }
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
     // varDeclaration -> TokenType.IDENTIFIER "=" exprssion ";"
@@ -84,6 +154,16 @@ class Parser {
 
         consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
         return new Stmt.Var(name, initializer);
+    }
+
+    // whileStatement -> "(" expression ")" statement
+    private Stmt whileStatement() {
+        consume(TokenType.LEFT_PAREN, "Expect '(' after 'while'.");
+        Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "Expect ')' after condition.");
+        Stmt body = statement();
+
+        return new Stmt.While(condition, body);
     }
 
     // expressionStatement -> exprssion ";"
@@ -122,9 +202,9 @@ class Parser {
         return expr;
     }
 
-    // ternary -> equality ( "?" expression ":" expression )?
+    // ternary -> or ( "?" expression ":" expression )?
     private Expr ternary() {
-        Expr expr = equality(); // this goes all the way down to "logical or"
+        Expr expr = or(); // this goes all the way down to "logical or"
 
         if (match(TokenType.QUESTION)) {
             Expr pass = expression();
@@ -132,6 +212,32 @@ class Parser {
             Expr fail = expression(); // this goes to assignment expression
 
             expr = new Expr.Ternary(expr, pass, fail);
+        }
+
+        return expr;
+    }
+
+    // or -> and "or" and
+    private Expr or() {
+        Expr expr = and();
+
+        while (match(TokenType.OR)) {
+            Token operator = previous();
+            Expr right = and();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    // and -> equality "and" equality
+    private Expr and() {
+        Expr expr = equality();
+
+        while (match(TokenType.AND)) {
+            Token operator = previous();
+            Expr right = equality();
+            expr = new Expr.Logical(expr, operator, right);
         }
 
         return expr;
