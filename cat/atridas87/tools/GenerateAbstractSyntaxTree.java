@@ -13,10 +13,11 @@ public class GenerateAbstractSyntaxTree {
     }
     String outputDir = args[0] + "/cat/atridas87/minairo/generated/";
     defineAst(outputDir, "Expr",
-        Arrays.asList(),
+        Arrays.asList("java.util.List"),
         Arrays.asList(
             "Assign   : Token name, Expr value",
             "Binary   : Expr left, Token operator, Expr right",
+            "Call     : Expr callee, Token paren, List<Expr> arguments",
             "Grouping : Expr expression",
             "Literal  : Object value",
             "Logical  : Expr left, Token operator, Expr right",
@@ -29,9 +30,10 @@ public class GenerateAbstractSyntaxTree {
         Arrays.asList(
             "Block      : List<Stmt> statements",
             "Expression : Expr expression",
-            "If         : Expr condition, Stmt thenBranch," +
-                " Stmt elseBranch",
+            "Function   : Token name, List<Token> params, List<Stmt> body",
+            "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
             "Print      : Expr expression",
+            "Return     : Token keyword, Expr value",
             "Var        : Token name, Expr initializer",
             "While      : Expr condition, Stmt body"));
   }
