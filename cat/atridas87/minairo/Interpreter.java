@@ -1,7 +1,9 @@
 package cat.atridas87.minairo;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import cat.atridas87.minairo.generated.*;
 
@@ -9,6 +11,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     final Environment globals = new Environment();
     private Environment environment = globals;
+    private final Map<Expr, Integer> locals = new HashMap<>();
 
     Interpreter() {
         globals.define("clock", new MinairoCallable() {
@@ -30,6 +33,12 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         });
     }
 
+    void addLocals(Map<Expr, Integer> _locals) {
+        for (Map.Entry<Expr, Integer> localBinding : _locals.entrySet()) {
+            locals.put(localBinding.getKey(), localBinding.getValue());
+        }
+    }
+
     void interpret(List<Stmt> statements) {
         try {
             for (Stmt statement : statements) {
@@ -37,8 +46,6 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             }
         } catch (RuntimeError error) {
             Minairo.runtimeError(error);
-        } catch (Return rtrn) {
-            Minairo.error(rtrn.keyword, "return statement must happen inside of a function");
         }
     }
 
@@ -46,7 +53,14 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-        environment.assign(expr.name, value);
+
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            environment.assignAt(distance, expr.name, value);
+        } else {
+            globals.assign(expr.name, value);
+        }
+
         return value;
     }
 
@@ -172,7 +186,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
+        return lookUpVariable(expr.name, expr);
     }
     // END Expr.Visitor<Object> Interface
 
@@ -292,6 +306,15 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         if (object instanceof Boolean)
             return (boolean) object;
         return true;
+    }
+
+    private Object lookUpVariable(Token name, Expr expr) {
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            return environment.getAt(distance, name.lexeme);
+        } else {
+            return globals.get(name);
+        }
     }
 
     private String stringify(Object object) {

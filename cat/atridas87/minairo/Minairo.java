@@ -84,6 +84,15 @@ public class Minairo {
     if (hadError)
       return;
 
+    Resolver resolver = new Resolver();
+    resolver.resolve(statements);
+
+    
+    // Stop if there was a resolve error.
+    if (hadError)
+      return;
+
+    interpreter.addLocals(resolver.getLocals());
     interpreter.interpret(statements);
     // System.out.println(new AstPrinter().print(expression));
   }
