@@ -7,10 +7,12 @@ import cat.atridas87.minairo.generated.Stmt;
 public class MinairoFunction implements MinairoCallable {
     private final Stmt.Function declaration;
     private final Environment closure;
+    private final boolean isInitializer;
 
-    MinairoFunction(Stmt.Function declaration, Environment closure) {
+    MinairoFunction(Stmt.Function declaration, Environment closure, boolean isInitializer) {
         this.declaration = declaration;
         this.closure = closure;
+        this.isInitializer = isInitializer;
     }
 
     @Override
@@ -29,13 +31,23 @@ public class MinairoFunction implements MinairoCallable {
         try {
             interpreter.executeBlock(declaration.body, environment);
         } catch (Return returnValue) {
+            if (isInitializer) return closure.getAt(0, "this");
+            
             return returnValue.value;
         }
+
+        if (isInitializer) return closure.getAt(0, "this");
         return null;
     }
 
     @Override
     public String toString() {
         return "<fn " + declaration.name.lexeme + ">";
+    }
+
+    MinairoFunction bind(MinairoInstance instance) {
+        Environment environment = new Environment(closure);
+        environment.define("this", instance);
+        return new MinairoFunction(declaration, environment, isInitializer);
     }
 }

@@ -16,9 +16,7 @@ public class Minairo {
   static boolean hadRuntimeError = false;
 
   public static void main(String[] args) throws IOException {
-    if (args.length == 3 && args[0].equals("debug") && args[1].equals("ast") && args[2].equals("printer")) {
-      debugAstPrinter();
-    } else if (args.length > 1) {
+    if (args.length > 1) {
       System.out.println("Usage: jminairo [script]");
       System.exit(64);
     } else if (args.length == 1) {
@@ -57,18 +55,6 @@ public class Minairo {
       }
       run(line);
     }
-  }
-
-  private static void debugAstPrinter() {
-    Expr expression = new Expr.Binary(
-        new Expr.Unary(
-            new Token(TokenType.MINUS, "-", null, 1),
-            new Expr.Literal(123)),
-        new Token(TokenType.STAR, "*", null, 1),
-        new Expr.Grouping(
-            new Expr.Literal(45.67)));
-
-    System.out.println(new AstPrinter().print(expression));
   }
 
   private static void run(String source) {
