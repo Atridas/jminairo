@@ -7,7 +7,7 @@ import java.util.Map;
 
 import cat.atridas87.minairo.generated.*;
 
-class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object> {
 
     final Environment globals = new Environment();
     private Environment environment = globals;
@@ -48,6 +48,88 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             Minairo.runtimeError(error);
         }
     }
+
+    // BEGIN Stmt.Visitor<Void> Interface
+    @Override
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        executeBlock(stmt.statements, new Environment(environment));
+        return null;
+    }
+
+    @Override
+    public Void visitClassStmt(Stmt.Class stmt) {
+        environment.define(stmt.name.lexeme, null);
+
+        Map<String, MinairoFunction> methods = new HashMap<>();
+        for (Stmt.Function method : stmt.methods) {
+            boolean isInitializer = method.name.lexeme.equals("init");
+            MinairoFunction function = new MinairoFunction(method, environment, isInitializer);
+            methods.put(method.name.lexeme, function);
+        }
+
+        MinairoClass klass = new MinairoClass(stmt.name.lexeme, methods);
+        environment.assign(stmt.name, klass);
+        return null;
+    }
+
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitFunctionStmt(Stmt.Function stmt) {
+        MinairoFunction function = new MinairoFunction(stmt, environment, false);
+        environment.define(stmt.name.lexeme, function);
+        return null;
+    }
+
+    @Override
+    public Void visitIfStmt(Stmt.If stmt) {
+        if (isTruthy(evaluate(stmt.condition))) {
+            execute(stmt.thenBranch);
+        } else if (stmt.elseBranch != null) {
+            execute(stmt.elseBranch);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
+    }
+
+    @Override
+    public Void visitReturnStmt(Stmt.Return stmt) {
+        Object value = null;
+        if (stmt.value != null)
+            value = evaluate(stmt.value);
+
+        throw new Return(stmt.keyword, value);
+    }
+
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt) {
+        Object value = null;
+        if (stmt.initializer != null) {
+            value = evaluate(stmt.initializer);
+        }
+
+        environment.define(stmt.name.lexeme, value);
+        return null;
+    }
+
+    @Override
+    public Void visitWhileStmt(Stmt.While stmt) {
+        while (isTruthy(evaluate(stmt.condition))) {
+            execute(stmt.body);
+        }
+        return null;
+    }
+    // END Stmt.Visitor<Void> Interface
 
     // BEGIN Expr.Visitor<Object> Interface
     @Override
@@ -219,88 +301,6 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return lookUpVariable(expr.name, expr);
     }
     // END Expr.Visitor<Object> Interface
-
-    // BEGIN Stmt.Visitor<Void> Interface
-    @Override
-    public Void visitBlockStmt(Stmt.Block stmt) {
-        executeBlock(stmt.statements, new Environment(environment));
-        return null;
-    }
-
-    @Override
-    public Void visitClassStmt(Stmt.Class stmt) {
-        environment.define(stmt.name.lexeme, null);
-
-        Map<String, MinairoFunction> methods = new HashMap<>();
-        for (Stmt.Function method : stmt.methods) {
-            boolean isInitializer = method.name.lexeme.equals("init");
-            MinairoFunction function = new MinairoFunction(method, environment, isInitializer);
-            methods.put(method.name.lexeme, function);
-        }
-
-        MinairoClass klass = new MinairoClass(stmt.name.lexeme, methods);
-        environment.assign(stmt.name, klass);
-        return null;
-    }
-
-    @Override
-    public Void visitExpressionStmt(Stmt.Expression stmt) {
-        evaluate(stmt.expression);
-        return null;
-    }
-
-    @Override
-    public Void visitFunctionStmt(Stmt.Function stmt) {
-        MinairoFunction function = new MinairoFunction(stmt, environment, false);
-        environment.define(stmt.name.lexeme, function);
-        return null;
-    }
-
-    @Override
-    public Void visitIfStmt(Stmt.If stmt) {
-        if (isTruthy(evaluate(stmt.condition))) {
-            execute(stmt.thenBranch);
-        } else if (stmt.elseBranch != null) {
-            execute(stmt.elseBranch);
-        }
-        return null;
-    }
-
-    @Override
-    public Void visitPrintStmt(Stmt.Print stmt) {
-        Object value = evaluate(stmt.expression);
-        System.out.println(stringify(value));
-        return null;
-    }
-
-    @Override
-    public Void visitReturnStmt(Stmt.Return stmt) {
-        Object value = null;
-        if (stmt.value != null)
-            value = evaluate(stmt.value);
-
-        throw new Return(stmt.keyword, value);
-    }
-
-    @Override
-    public Void visitVarStmt(Stmt.Var stmt) {
-        Object value = null;
-        if (stmt.initializer != null) {
-            value = evaluate(stmt.initializer);
-        }
-
-        environment.define(stmt.name.lexeme, value);
-        return null;
-    }
-
-    @Override
-    public Void visitWhileStmt(Stmt.While stmt) {
-        while (isTruthy(evaluate(stmt.condition))) {
-            execute(stmt.body);
-        }
-        return null;
-    }
-    // END Expr.Visitor<Void> Interface
 
     private void checkNumberOperand(Token operator, Object operand) {
         if (operand instanceof Double)

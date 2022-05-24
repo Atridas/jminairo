@@ -8,7 +8,7 @@ import java.util.Stack;
 import cat.atridas87.minairo.generated.*;
 import cat.atridas87.minairo.generated.Expr.Ternary;
 
-class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
+class Resolver implements  Stmt.Visitor<Void>, Expr.Visitor<Void> {
     private final Stack<Map<String, Boolean>> scopes = new Stack<>();
     private final Map<Expr, Integer> locals = new HashMap<>();
     private FunctionType currentFunction = FunctionType.NONE;
