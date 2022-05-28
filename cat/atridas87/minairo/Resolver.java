@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Stack;
 
 import cat.atridas87.minairo.generated.*;
-import cat.atridas87.minairo.generated.Expr.Ternary;
 
 class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     private final Stack<Map<String, Boolean>> scopes = new Stack<>();
@@ -131,6 +130,14 @@ class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     }
 
     @Override
+    public Void visitTableStmt(Stmt.Table stmt) {
+        declare(stmt.name);
+        define(stmt.name);
+        
+        return null;
+    }
+
+    @Override
     public Void visitVarStmt(Stmt.Var stmt) {
         declare(stmt.name);
         if (stmt.initializer != null) {
@@ -228,7 +235,7 @@ class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     }
 
     @Override
-    public Void visitTernaryExpr(Ternary expr) {
+    public Void visitTernaryExpr(Expr.Ternary expr) {
         resolve(expr.condition);
         resolve(expr.pass);
         resolve(expr.fail);

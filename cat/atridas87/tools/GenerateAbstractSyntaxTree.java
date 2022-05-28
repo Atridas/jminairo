@@ -39,8 +39,13 @@ public class GenerateAbstractSyntaxTree {
             "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
             "Print      : Expr expression",
             "Return     : Token keyword, Expr value",
+            "Table      : Token name, List<Token> fields, List<Type> types",
             "Var        : Token name, Expr initializer",
             "While      : Expr condition, Stmt body"));
+
+    defineAst(outputDir, "Type",
+        Arrays.asList(),
+        Arrays.asList("BuildInType       : Token keyword"));
   }
 
   private static void defineAst(String outputDir, String baseName, List<String> imports, List<String> types)

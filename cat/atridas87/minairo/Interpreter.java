@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import cat.atridas87.minairo.generated.*;
 
-class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object> {
+class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object>, Type.Visitor<TableFieldType> {
 
     final Environment globals = new Environment();
     private Environment environment = globals;
@@ -126,6 +127,21 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object> {
             value = evaluate(stmt.value);
 
         throw new Return(stmt.keyword, value);
+    }
+
+    @Override
+    public Void visitTableStmt(Stmt.Table stmt) {
+        List<String> fields = new Vector<>();
+        List<TableFieldType> types = new Vector<>();
+
+        for(int i = 0; i < stmt.fields.size(); ++i) {
+            fields.add(stmt.fields.get(i).lexeme);
+            types.add(getType(stmt.types.get(i)));
+        }
+
+        MinairoTable table = new MinairoTable(stmt.name.lexeme, fields, types);
+        environment.define(stmt.name.lexeme, table);
+        return null;
     }
 
     @Override
@@ -333,6 +349,22 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object> {
     }
     // END Expr.Visitor<Object> Interface
 
+    // BEGIN Type.Visitor<BuildInType> Interface
+    @Override
+    public TableFieldType visitBuildInTypeType(Type.BuildInType type) {
+        switch (type.keyword.type) {
+            case TYPE_BOOLEAN:
+                return TableFieldType.BOOLEAN;
+            case TYPE_NUMBER:
+                return TableFieldType.NUMBER;
+            case TYPE_STRING:
+                return TableFieldType.STRING;
+            default:
+                throw new RuntimeException();
+        }
+    }
+    // END Type.Visitor<BuildInType> Interface
+
     private void checkNumberOperand(Token operator, Object operand) {
         if (operand instanceof Double)
             return;
@@ -353,6 +385,10 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object> {
 
     private void execute(Stmt stmt) {
         stmt.accept(this);
+    }
+
+    private TableFieldType getType(Type type) {
+        return type.accept(this);
     }
 
     void executeBlock(List<Stmt> statements, Environment environment) {

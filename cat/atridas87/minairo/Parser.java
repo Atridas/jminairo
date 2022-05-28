@@ -31,14 +31,16 @@ class Parser {
         }
     }
 
-    // statement -> "class" classDeclaration | "fun" function | "var" varDeclaration
-    // | statement
+    // statement -> "class" classDeclaration | "fun" function
+    // | "table" tableDeclaration | "var" varDeclaration | statement
     private Stmt declaration() {
         try {
             if (match(TokenType.CLASS))
                 return classDeclaration();
             if (match(TokenType.FUN))
                 return function("function");
+            if (match(TokenType.TABLE))
+                return tableDeclaration();
             if (match(TokenType.VAR))
                 return varDeclaration();
 
@@ -49,7 +51,7 @@ class Parser {
         }
     }
 
-    // classDeclaration -> IDENTIFIER "{" function* "}"
+    // classDeclaration -> IDENTIFIER ( "<" IDENTIFIER )? "{" function* "}"
     private Stmt classDeclaration() {
         Token name = consume(TokenType.IDENTIFIER, "Expect class name.");
 
@@ -92,6 +94,59 @@ class Parser {
         consume(TokenType.LEFT_BRACE, "Expect '{' before " + kind + " body.");
         List<Stmt> body = block();
         return new Stmt.Function(name, parameters, body);
+    }
+
+    // tableDeclaration -> IDENTIFIER "{" ( IDENTIFIER ":" primitiveType ";" )* "}"
+    private Stmt tableDeclaration() {
+        Token name = consume(TokenType.IDENTIFIER, "Expect table name.");
+
+        consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
+
+        List<Token> fields = new ArrayList<>();
+        List<Type> types = new ArrayList<>();
+        while(match(TokenType.IDENTIFIER))
+        {
+            Token field = previous();
+            consume(TokenType.COLON, "Expect ':' after field name.");
+            Type type = primitiveType();
+            consume(TokenType.SEMICOLON, "Expect ';' after field type.");
+
+            fields.add(field);
+            types.add(type);
+        }
+        
+        consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
+
+        return new Stmt.Table(name, fields, types);
+    }
+
+    // varDeclaration -> IDENTIFIER "=" exprssion ";"
+    private Stmt varDeclaration() {
+        Token name = consume(TokenType.IDENTIFIER, "Expect variable name.");
+
+        Expr initializer = null;
+        if (match(TokenType.EQUAL)) {
+            initializer = expression();
+        }
+
+        consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+        return new Stmt.Var(name, initializer);
+    }
+
+    // primitiveType -> "boolean" | "number" | "string"
+    private Type primitiveType() {
+        if(match(TokenType.TYPE_BOOLEAN))
+        {
+            return new Type.BuildInType(previous());
+        }else if(match(TokenType.TYPE_NUMBER))
+        {
+            return new Type.BuildInType(previous());
+        }else if(match(TokenType.TYPE_STRING))
+        {
+            return new Type.BuildInType(previous());
+        } else {
+            throw error(peek(), "Expected a type");
+        }
     }
 
     // statement -> "for" forStatement
@@ -206,19 +261,6 @@ class Parser {
         }
 
         return new Stmt.If(condition, thenBranch, elseBranch);
-    }
-
-    // varDeclaration -> TokenType.IDENTIFIER "=" exprssion ";"
-    private Stmt varDeclaration() {
-        Token name = consume(TokenType.IDENTIFIER, "Expect variable name.");
-
-        Expr initializer = null;
-        if (match(TokenType.EQUAL)) {
-            initializer = expression();
-        }
-
-        consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
-        return new Stmt.Var(name, initializer);
     }
 
     // whileStatement -> "(" expression ")" statement
