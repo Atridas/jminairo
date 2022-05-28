@@ -23,6 +23,7 @@ public class GenerateAbstractSyntaxTree {
             "Literal  : Object value",
             "Logical  : Expr left, Token operator, Expr right",
             "Set      : Expr object, Token name, Expr value",
+            "Super    : Token keyword, Token method",
             "Ternary  : Expr condition, Expr pass, Expr fail",
             "This     : Token keyword",
             "Unary    : Token operator, Expr right",
@@ -32,7 +33,7 @@ public class GenerateAbstractSyntaxTree {
         Arrays.asList("java.util.List"),
         Arrays.asList(
             "Block      : List<Stmt> statements",
-            "Class      : Token name, List<Stmt.Function> methods",
+            "Class      : Token name, Expr.Variable superclass, List<Stmt.Function> methods",
             "Expression : Expr expression",
             "Function   : Token name, List<Token> params, List<Stmt> body",
             "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",

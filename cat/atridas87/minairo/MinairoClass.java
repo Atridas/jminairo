@@ -6,10 +6,12 @@ import java.util.Map;
 public class MinairoClass implements MinairoCallable {
     final String name;
     private final Map<String, MinairoFunction> methods;
+    final MinairoClass superclass;
 
-    MinairoClass(String name, Map<String, MinairoFunction> methods) {
+    MinairoClass(String name, MinairoClass superclass, Map<String, MinairoFunction> methods) {
         this.name = name;
         this.methods = methods;
+        this.superclass = superclass;
     }
 
     @Override
@@ -20,6 +22,10 @@ public class MinairoClass implements MinairoCallable {
     MinairoFunction findMethod(String name) {
         if (methods.containsKey(name)) {
             return methods.get(name);
+        }
+
+        if (superclass != null) {
+            return superclass.findMethod(name);
         }
 
         return null;

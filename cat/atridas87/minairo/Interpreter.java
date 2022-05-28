@@ -58,7 +58,21 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object> {
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
+        Object superclass = null;
+        if (stmt.superclass != null) {
+            superclass = evaluate(stmt.superclass);
+            if (!(superclass instanceof MinairoClass)) {
+                throw new RuntimeError(stmt.superclass.name,
+                        "Superclass must be a class.");
+            }
+        }
+
         environment.define(stmt.name.lexeme, null);
+
+        if (stmt.superclass != null) {
+            environment = new Environment(environment);
+            environment.define("super", superclass);
+        }
 
         Map<String, MinairoFunction> methods = new HashMap<>();
         for (Stmt.Function method : stmt.methods) {
@@ -67,7 +81,10 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object> {
             methods.put(method.name.lexeme, function);
         }
 
-        MinairoClass klass = new MinairoClass(stmt.name.lexeme, methods);
+        MinairoClass klass = new MinairoClass(stmt.name.lexeme, (MinairoClass) superclass, methods);
+        if (superclass != null) {
+            environment = environment.ancestor(1);
+        }
         environment.assign(stmt.name, klass);
         return null;
     }
@@ -265,6 +282,20 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object> {
         Object value = evaluate(expr.value);
         ((MinairoInstance) object).set(expr.name, value);
         return value;
+    }
+
+    @Override
+    public Object visitSuperExpr(Expr.Super expr) {
+        int distance = locals.get(expr);
+        MinairoClass superclass = (MinairoClass) environment.getAt(distance, "super");
+        MinairoInstance object = (MinairoInstance) environment.getAt(distance - 1, "this");
+        MinairoFunction method = superclass.findMethod(expr.method.lexeme);
+
+        if (method == null) {
+            throw new RuntimeError(expr.method, "Undefined property '" + expr.method.lexeme + "'.");
+        }
+
+        return method.bind(object);
     }
 
     @Override
