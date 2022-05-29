@@ -35,6 +35,7 @@ public class GenerateAbstractSyntaxTree {
             "Block      : List<Stmt> statements",
             "Class      : Token name, Expr.Variable superclass, List<Stmt.Function> methods",
             "Expression : Expr expression",
+            "ForEach    : Token fr, Expr table, List<Token> fields, Stmt body",
             "Function   : Token name, List<Token> params, List<Stmt> body",
             "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
             "Print      : Expr expression",

@@ -90,6 +90,21 @@ class Resolver implements Stmt.Visitor<Void>, Expr.Visitor<Void> {
     }
 
     @Override
+    public Void visitForEachStmt(Stmt.ForEach stmt) {
+        resolve(stmt.table);
+
+        beginScope();
+        for(Token field : stmt.fields) {
+            declare(field);
+            define(field);
+        }
+
+        resolve(stmt.body);
+        endScope();
+        return null;
+    }
+
+    @Override
     public Void visitFunctionStmt(Stmt.Function stmt) {
         declare(stmt.name);
         define(stmt.name);

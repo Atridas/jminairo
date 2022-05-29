@@ -7,6 +7,7 @@ enum TokenType {
   STAR, QUESTION,
 
   // One or two character tokens.
+  ARROW,
   BANG, BANG_EQUAL,
   EQUAL, EQUAL_EQUAL,
   GREATER, GREATER_EQUAL,

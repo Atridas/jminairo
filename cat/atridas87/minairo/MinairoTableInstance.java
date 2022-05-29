@@ -20,6 +20,27 @@ public class MinairoTableInstance {
                 "Undefined method '" + name.lexeme + "'.");
     }
 
+    int getCount() {
+        
+        if (fields.size() == 0) {
+            return 0;
+        } else {
+            return fields.get(0).size();
+        }
+    }
+
+    Object getTupleElement(int idx, Token fieldName) {
+
+        for(int i = 0; i < table.fieldCanonicalOrder.size(); ++i) {
+            if(table.fieldCanonicalOrder.get(i).equals(fieldName.lexeme))
+            {
+                return fields.get(i).get(idx);
+            }
+        }
+
+        throw new RuntimeError(fieldName, "Table doesn't contain field '" + fieldName.lexeme + "'");
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -88,11 +109,11 @@ class InsertIntoTable implements MinairoCallable {
                     break;
                 case NUMBER:
                     if (!(argument instanceof Double))
-                    throw new RuntimeError(callToken, "Field '" + field + "' must be a number.");
+                        throw new RuntimeError(callToken, "Field '" + field + "' must be a number.");
                     break;
                 case STRING:
                     if (!(argument instanceof String))
-                    throw new RuntimeError(callToken, "Field '" + field + "' must be a string.");
+                        throw new RuntimeError(callToken, "Field '" + field + "' must be a string.");
                     break;
             }
         }

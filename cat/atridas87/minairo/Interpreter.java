@@ -97,6 +97,33 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object>, Type.Visi
     }
 
     @Override
+    public Void visitForEachStmt(Stmt.ForEach stmt) {
+        Object boxedTable = evaluate(stmt.table);
+
+        if (!(boxedTable instanceof MinairoTableInstance)) {
+            throw new RuntimeError(stmt.fr, "Expected for each expression to be a table instance");
+        }
+
+        MinairoTableInstance table = (MinairoTableInstance) boxedTable;
+
+        Environment previous = environment;
+
+        for (int i = 0; i < table.getCount(); ++i) {
+            try {
+                environment = new Environment(environment);
+                for (Token field : stmt.fields) {
+                    environment.define(field.lexeme, table.getTupleElement(i, field));
+                }
+                execute(stmt.body);
+            } finally {
+                environment = previous;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
     public Void visitFunctionStmt(Stmt.Function stmt) {
         MinairoFunction function = new MinairoFunction(stmt, environment, false);
         environment.define(stmt.name.lexeme, function);
@@ -134,7 +161,7 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object>, Type.Visi
         List<String> fields = new Vector<>();
         List<TableFieldType> types = new Vector<>();
 
-        for(int i = 0; i < stmt.fields.size(); ++i) {
+        for (int i = 0; i < stmt.fields.size(); ++i) {
             fields.add(stmt.fields.get(i).lexeme);
             types.add(getType(stmt.types.get(i)));
         }
@@ -255,7 +282,7 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object>, Type.Visi
         Object object = evaluate(expr.object);
         if (object instanceof MinairoInstance) {
             return ((MinairoInstance) object).get(expr.name);
-        } else if(object instanceof MinairoTableInstance) {
+        } else if (object instanceof MinairoTableInstance) {
             return ((MinairoTableInstance) object).get(expr.name);
         }
 

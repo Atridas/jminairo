@@ -2,7 +2,7 @@ package cat.atridas87.minairo;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Vector;
 import java.util.Arrays;
 import cat.atridas87.minairo.generated.*;
 
@@ -173,7 +173,9 @@ class Parser {
             return expressionStatement();
     }
 
+    // forStatement -> "(" (";" | ( "var" varDeclaration ) | expressionStatement ) expression? ";" expression? ")" statement
     private Stmt forStatement() {
+        Token fr = previous();
         consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.");
 
         Stmt initializer;
@@ -182,7 +184,27 @@ class Parser {
         } else if (match(TokenType.VAR)) {
             initializer = varDeclaration();
         } else {
-            initializer = expressionStatement();
+            Expr initializerExpr = expression();
+
+            if (match(TokenType.SEMICOLON)) {
+                initializer = new Stmt.Expression(initializerExpr);
+            } else {
+                consume(TokenType.ARROW, "Expect ';' after initializer or '->' after table.");
+                consume(TokenType.IDENTIFIER, "Expected field name after '->'");
+
+                List<Token> fields = new Vector<>();
+                fields.add(previous());
+
+                while(match(TokenType.COMMA))
+                {
+                    consume(TokenType.IDENTIFIER, "Expected field name after ','");
+                    fields.add(previous());
+                }
+
+                consume(TokenType.RIGHT_PAREN, "Expect ')' after table fields.");
+                Stmt body = statement();
+                return new Stmt.ForEach(fr, initializerExpr, fields, body);
+            }
         }
 
         Expr condition = null;
@@ -273,7 +295,7 @@ class Parser {
         return new Stmt.While(condition, body);
     }
 
-    // expressionStatement -> exprssion ";"
+    // expressionStatement -> expression ";"
     private Stmt expressionStatement() {
         Expr expr = expression();
         consume(TokenType.SEMICOLON, "Expect ';' after expression.");

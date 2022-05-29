@@ -74,9 +74,6 @@ class Scanner {
       case '.':
         addToken(TokenType.DOT);
         break;
-      case '-':
-        addToken(TokenType.MINUS);
-        break;
       case '+':
         addToken(TokenType.PLUS);
         break;
@@ -93,6 +90,9 @@ class Scanner {
         addToken(TokenType.QUESTION);
         break;
 
+      case '-':
+        addToken(match('>') ? TokenType.ARROW : TokenType.MINUS);
+        break;
       case '!':
         addToken(match('=') ? TokenType.BANG_EQUAL : TokenType.BANG);
         break;
