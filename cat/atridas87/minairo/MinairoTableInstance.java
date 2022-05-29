@@ -41,6 +41,35 @@ public class MinairoTableInstance {
         throw new RuntimeError(fieldName, "Table doesn't contain field '" + fieldName.lexeme + "'");
     }
 
+    void setTupleElement(int idx, Token fieldName, Object value) {
+
+        for(int i = 0; i < table.fieldCanonicalOrder.size(); ++i) {
+            if(table.fieldCanonicalOrder.get(i).equals(fieldName.lexeme))
+            {
+                TableFieldType fieldType = table.fields.get(fieldName.lexeme);
+                switch (fieldType) {
+                    case BOOLEAN:
+                        if (!(value instanceof Boolean))
+                            throw new RuntimeError(fieldName, "Field '" + fieldName.lexeme + "' must be a boolean.");
+                        break;
+                    case NUMBER:
+                        if (!(value instanceof Double))
+                            throw new RuntimeError(fieldName, "Field '" + fieldName.lexeme + "' must be a number.");
+                        break;
+                    case STRING:
+                        if (!(value instanceof String))
+                            throw new RuntimeError(fieldName, "Field '" + fieldName.lexeme + "' must be a string.");
+                        break;
+                }
+
+                fields.get(i).set(idx, value);
+                return;
+            }
+        }
+
+        throw new RuntimeError(fieldName, "Table doesn't contain field '" + fieldName.lexeme + "'");
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -105,7 +134,6 @@ class InsertIntoTable implements MinairoCallable {
                 case BOOLEAN:
                     if (!(argument instanceof Boolean))
                         throw new RuntimeError(callToken, "Field '" + field + "' must be a boolean.");
-
                     break;
                 case NUMBER:
                     if (!(argument instanceof Double))
