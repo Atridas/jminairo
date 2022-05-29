@@ -6,12 +6,10 @@ import java.util.Map;
 import java.util.Vector;
 
 public class MinairoTable implements MinairoCallable {
-    final String name;
-    private final Map<String, TableFieldType> fields;
-    private final List<String> fieldCanonicalOrder;
+    final Map<String, TableFieldType> fields;
+    final List<String> fieldCanonicalOrder;
 
-    MinairoTable(String name, List<String> fields, List<TableFieldType> types) {
-        this.name = name;
+    MinairoTable(List<String> fields, List<TableFieldType> types) {
         this.fieldCanonicalOrder = fields;
         this.fields = new HashMap<>();
         for (int i = 0; i < fields.size(); ++i) {
@@ -21,7 +19,23 @@ public class MinairoTable implements MinairoCallable {
 
     @Override
     public String toString() {
-        return "<table " + name + ">";
+        StringBuilder builder = new StringBuilder();
+
+        builder.append("( ");
+
+        String separator = "";
+        for (String field : fieldCanonicalOrder) {
+
+            builder.append(separator);
+            builder.append(field);
+            builder.append(" : ");
+            builder.append(fields.get(field));
+            separator = ", ";
+        }
+
+        builder.append(" )");
+
+        return builder.toString();
     }
 
     public TableFieldType getFieldType(String field) {
@@ -31,19 +45,10 @@ public class MinairoTable implements MinairoCallable {
     // BEGIN MinairoCallable
     @Override
     public Object call(Interpreter interpreter, List<Object> arguments) {
-        Map<String, Object> instanceFields = new HashMap<>();
-        for (Map.Entry<String, TableFieldType> field : fields.entrySet()) {
-            switch (field.getValue()) {
-                case BOOLEAN:
-                    instanceFields.put(field.getKey(), new Vector<Boolean>());
-                    break;
-                case NUMBER:
-                    instanceFields.put(field.getKey(), new Vector<Double>());
-                    break;
-                case STRING:
-                    instanceFields.put(field.getKey(), new Vector<String>());
-                    break;
-            }
+        List<List<Object>> instanceFields = new Vector<>();
+
+        for(int i = 0; i < fieldCanonicalOrder.size(); ++i) {
+            instanceFields.add(new Vector<Object>());
         }
         return new MinairoTableInstance(this, instanceFields);
     }

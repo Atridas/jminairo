@@ -139,7 +139,7 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object>, Type.Visi
             types.add(getType(stmt.types.get(i)));
         }
 
-        MinairoTable table = new MinairoTable(stmt.name.lexeme, fields, types);
+        MinairoTable table = new MinairoTable(fields, types);
         environment.define(stmt.name.lexeme, table);
         return null;
     }
@@ -255,6 +255,8 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object>, Type.Visi
         Object object = evaluate(expr.object);
         if (object instanceof MinairoInstance) {
             return ((MinairoInstance) object).get(expr.name);
+        } else if(object instanceof MinairoTableInstance) {
+            return ((MinairoTableInstance) object).get(expr.name);
         }
 
         throw new RuntimeError(expr.name,
