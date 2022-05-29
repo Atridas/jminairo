@@ -112,15 +112,11 @@ class Interpreter implements Stmt.Visitor<Void>, Expr.Visitor<Object>, Type.Visi
             try {
                 environment = new Environment(environment);
                 for (Token field : stmt.fields) {
-                    environment.define(field.lexeme, table.getTupleElement(i, field));
+                    environment.define(field.lexeme, table.getTupleReference(i, field));
                 }
 
                 execute(stmt.body);
 
-                // TODO replace this hack with proper references
-                for (Token field : stmt.fields) {
-                    table.setTupleElement(i, field, environment.get(field));
-                }
             } finally {
                 environment = previous;
             }
